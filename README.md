@@ -84,9 +84,9 @@ To solve this the most obvious solution was to make the background transparent. 
 
 After wasting a day playing with different color values finally settled on one. Hope you like it.
 
-![ ](https://raw.githubusercontent.com/AndrewDongminYoo/github-stats-transparent/main/readme_images/light.png)
+![ ](https://raw.githubusercontent.com/AndrewDongminYoo/github-stats-transparent/refs/heads/main/readme_images/light.png)
 
-![ ](https://raw.githubusercontent.com/AndrewDongminYoo/github-stats-transparent/main/readme_images/dark.png)
+![ ](https://raw.githubusercontent.com/AndrewDongminYoo/github-stats-transparent/refs/heads/main/readme_images/dark.png)
 
 ## Related Projects
 
