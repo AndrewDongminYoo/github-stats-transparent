@@ -4,8 +4,8 @@
 
 <a href="https://github.com/AndrewDongminYoo/github-stats-transparent">
 
-![ ](https://raw.githubusercontent.com/AndrewDongminYoo/github-stats-transparent/output/generated/overview.svg)
-![ ](https://raw.githubusercontent.com/AndrewDongminYoo/github-stats-transparent/output/generated/languages.svg)
+![ ](https://raw.githubusercontent.com/AndrewDongminYoo/github-stats-transparent/refs/heads/output/generated/overview.svg)
+![ ](https://raw.githubusercontent.com/AndrewDongminYoo/github-stats-transparent/refs/heads/output/generated/languages.svg)
 
 </a>
 
