@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+"""Fetch GitHub user stats via GraphQL and REST APIs."""
 
 import asyncio
 import os
@@ -56,6 +57,7 @@ class Queries(object):
                     "https://api.github.com/graphql",
                     headers=headers,
                     json={"query": generated_query},
+                    timeout=30,
                 )
                 return r.json()
 
@@ -99,6 +101,7 @@ class Queries(object):
                         f"https://api.github.com/{path}",
                         headers=headers,
                         params=tuple(params.items()),
+                        timeout=30,
                     )
                     if r.status_code == 202:
                         print("A path returned 202. Retrying...")
@@ -258,6 +261,7 @@ class Stats(object):
         self._exclude_langs = set() if exclude_langs is None else exclude_langs
         self._consider_forked_repos = consider_forked_repos
         self.queries = Queries(username, access_token, session)
+        self._ignored_repos = set()
 
         self._name = None
         self._stargazers = None
