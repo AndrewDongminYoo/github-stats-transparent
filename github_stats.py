@@ -375,16 +375,24 @@ Languages:
             else:
                 break
 
-        # TODO: Improve languages to scale by number of contributions to
-        #       specific filetypes
-        langs_total = sum([v.get("size", 0) for v in self._languages.values()])
-        for _k, v in self._languages.items():
-            v["prop"] = 100 * (v.get("size", 0) / langs_total)
+        langs_total = 0
+        for v in self._languages.values():
+            weight = v.get("occurrences", 1)
+            weighted_size = v.get("size", 0) * weight
+            v["weighted_size"] = weighted_size
+            langs_total += weighted_size
+
+        if langs_total > 0:
+            for v in self._languages.values():
+                v["prop"] = 100 * (v.get("weighted_size", 0) / langs_total)
+        else:
+            for v in self._languages.values():
+                v["prop"] = 0
 
     @property
     async def name(self) -> str:
         """
-        :return: GitHub user's name (e.g., Jacob Strieb)
+        :return: GitHub user's name (e.g., Dongmin, Yu)
         """
         if self._name is not None:
             return self._name
