@@ -48,8 +48,8 @@ class Queries(object):
                     json={"query": generated_query},
                 )
             return await r.json()
-        except:
-            print("aiohttp failed for GraphQL query")
+        except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+            print(f"aiohttp failed for GraphQL query: {exc}")
             # Fall back on non-async requests
             async with self.semaphore:
                 r = requests.post(
@@ -91,8 +91,8 @@ class Queries(object):
                 result = await r.json()
                 if result is not None:
                     return result
-            except:
-                print("aiohttp failed for rest query")
+            except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+                print(f"aiohttp failed for rest query: {exc}")
                 # Fall back on non-async requests
                 async with self.semaphore:
                     r = requests.get(
