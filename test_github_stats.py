@@ -66,6 +66,29 @@ async def _run_immediately(func, *args, **kwargs):
 
 
 class StatsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_fetch_lines_changed_uses_cached_login_when_username_missing(self):
+        stats = Stats(None, "token", None)
+        stats._login = "octocat"
+        stats.queries = _FakeQueries(
+            responses={
+                "/repos/owner/repo/stats/contributors": [
+                    (
+                        200,
+                        [
+                            {
+                                "author": {"login": "octocat"},
+                                "weeks": [{"a": 5, "d": 2}],
+                            }
+                        ],
+                    )
+                ],
+            }
+        )
+
+        result = await stats._fetch_lines_changed("owner/repo")
+
+        self.assertEqual(result, (5, 2))
+
     async def test_lines_changed_falls_back_to_git_when_stats_api_never_finishes(self):
         stats = Stats("octocat", "token", None)
         stats._repos = {"owner/repo"}
@@ -126,6 +149,37 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(log_command.count("--author"), 2)
         self.assertIn("one@example.com", log_command)
         self.assertIn("two@example.com", log_command)
+
+    async def test_git_fallback_uses_cached_login_when_username_missing(self):
+        stats = Stats(None, "token", None)
+        stats._login = "octocat"
+
+        with mock.patch.object(
+            stats,
+            "_get_user_emails",
+            new=mock.AsyncMock(return_value=["one@example.com"]),
+        ), mock.patch(
+            "github_stats.shutil.which", return_value="/usr/bin/git"
+        ), mock.patch(
+            "github_stats.asyncio.to_thread", side_effect=_run_immediately
+        ), mock.patch(
+            "github_stats.subprocess.run"
+        ) as run_mock:
+            run_mock.side_effect = [
+                subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+                subprocess.CompletedProcess(
+                    args=[],
+                    returncode=0,
+                    stdout="1\t1\tfoo.py\n",
+                    stderr="",
+                ),
+            ]
+
+            result = await stats._get_lines_changed_from_git("owner/repo")
+
+        self.assertEqual(result, (1, 1))
+        clone_command = run_mock.call_args_list[0].args[0]
+        self.assertIn("https://octocat:token@github.com/owner/repo.git", clone_command)
 
 
 if __name__ == "__main__":
