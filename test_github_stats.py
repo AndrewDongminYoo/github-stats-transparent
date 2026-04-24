@@ -105,6 +105,70 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, (7, 3))
         stats._get_lines_changed_from_git.assert_awaited_once_with("owner/repo")
 
+    async def test_lines_changed_summary_counts_api_fallback_and_failures(self):
+        stats = Stats("octocat", "token", None)
+        stats._repos = {"owner/api", "owner/fallback", "owner/fail"}
+        stats.queries = _FakeQueries(
+            responses={
+                "/repos/owner/api/stats/contributors": [
+                    (
+                        200,
+                        [
+                            {
+                                "author": {"login": "octocat"},
+                                "weeks": [{"a": 4, "d": 1}],
+                            }
+                        ],
+                    )
+                ],
+                "/repos/owner/fallback/stats/contributors": [(202, {})] * 10,
+                "/repos/owner/fail/stats/contributors": [(500, {"message": "boom"})],
+            }
+        )
+        stats._get_lines_changed_from_git = mock.AsyncMock(
+            return_value=(3, 2, "git_fallback")
+        )
+
+        with mock.patch("github_stats.asyncio.sleep", new=mock.AsyncMock()):
+            result = await stats.lines_changed
+            summary = await stats.lines_changed_summary
+
+        self.assertEqual(result, (7, 3))
+        self.assertEqual(
+            summary,
+            {"api_success": 1, "git_fallback_success": 1, "failed": 1},
+        )
+
+    async def test_lines_changed_summary_redacts_repository_names(self):
+        stats = Stats("octocat", "token", None)
+        stats._lines_changed = (7, 3)
+        stats._lines_changed_summary = {
+            "api_success": 2,
+            "git_fallback_success": 1,
+            "failed": 1,
+        }
+
+        summary = await stats.lines_changed_summary_text
+
+        self.assertEqual(
+            summary,
+            "Lines changed sources: API 2 | git fallback 1 | failed 1",
+        )
+        self.assertNotIn("owner/api", summary)
+        self.assertNotIn("owner/fallback", summary)
+
+    async def test_lines_changed_result_is_reused_after_first_calculation(self):
+        stats = Stats("octocat", "token", None)
+        stats._repos = {"owner/repo"}
+        stats._fetch_lines_changed = mock.AsyncMock(return_value=(1, 1, "api"))
+
+        first = await stats.lines_changed
+        second = await stats.lines_changed
+
+        self.assertEqual(first, (1, 1))
+        self.assertEqual(second, (1, 1))
+        stats._fetch_lines_changed.assert_awaited_once_with("owner/repo")
+
     async def test_get_user_emails_falls_back_to_noreply_address(self):
         stats = Stats("octocat", "token", None)
         stats.queries = _FakeQueries(
