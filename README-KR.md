@@ -2,7 +2,7 @@
 
 [English README](README.md)
 
-GitHub Actions로 생성하는 투명 배경 GitHub 통계 카드입니다.
+기본 설정에서는 GitHub Actions가 생성 결과를 `output` 브랜치로 푸시하고, 필요하면 로컬에서 `generated/` 디렉터리로도 생성할 수 있는 투명 배경 GitHub 통계 카드입니다.
 
 이 포크는 `rahul-jha98/github-stats-transparent`에서 시작했지만, 지금은 `Lines of code changed` 문제를 해결하는 데 초점을 맞추고 있습니다. 이를 위해 `jstrieb/github-stats`의 관련 Zig 동작을 Python으로 다시 구현했습니다.
 
@@ -13,7 +13,7 @@ GitHub Actions로 생성하는 투명 배경 GitHub 통계 카드입니다.
 - 별, 포크, 기여 수, 저장소 수, 조회 수, `Lines of code changed`를 보여주는 overview 카드
 - 수집된 저장소 기준으로 언어 비율을 보여주는 languages 카드
 
-생성된 카드는 GitHub Actions로 빌드된 뒤 `output` 브랜치의 `generated/` 디렉터리에 올라가며, 프로필 README나 다른 Markdown 문서에 그대로 임베드할 수 있습니다.
+기본 설정에서는 GitHub Actions가 카드를 생성한 뒤 `output` 브랜치의 `generated/` 디렉터리로 푸시하며, 프로필 README나 다른 Markdown 문서에 그대로 임베드할 수 있습니다. 로컬에서 실행하면 동일한 결과물이 현재 작업 디렉터리의 `generated/` 아래에 생성됩니다.
 
 ## 왜 이 포크가 필요한가
 
@@ -44,11 +44,9 @@ GitHub Actions로 생성하는 투명 배경 GitHub 통계 카드입니다.
 
 이것이 이 포크의 핵심 수정 사항입니다. 즉, 투명 Python 버전이 이제 `Lines of code changed`에 대해 upstream Zig 버전과 같은 방향의 복구 전략을 따릅니다.
 
-또한 워크플로 로그에는 저장소별 상세 오류 대신 아래와 같은 요약만 남깁니다.
+또한 워크플로 로그에는 저장소별 상세 오류 대신 아래 형태의 한 줄 요약만 남깁니다.
 
-- `API <count>`
-- `git fallback <count>`
-- `failed <count>`
+`Lines changed sources: API X | git fallback Y | failed Z`
 
 즉, 로그는 디버깅에 필요한 최소한의 정보는 유지하면서도 과도한 상세 출력은 피하도록 정리되어 있습니다.
 
@@ -56,14 +54,15 @@ GitHub Actions로 생성하는 투명 배경 GitHub 통계 카드입니다.
 
 ### GitHub Actions 기준
 
-1. 다음 권한이 포함된 personal access token을 만듭니다.
+1. personal access token을 만듭니다.
+2. 권장 권한은 다음과 같습니다.
    - `read:user`
-   - `repo`
-   - `user:email`
-2. 포크한 저장소 또는 사용하는 저장소의 Secrets에 `ACCESS_TOKEN` 이름으로 등록합니다.
-3. 필요하면 아래 설정 변수도 함께 추가합니다.
-4. Actions 탭에서 `Generate Stats Images` 워크플로를 한 번 수동 실행합니다.
-5. 이후 생성된 카드는 `output` 브랜치의 `generated/` 아래에서 사용할 수 있습니다.
+   - private repository 통계를 포함하려면 `repo`
+   - git fallback에서 전체 이메일 목록 기준으로 더 잘 매칭하려면 `user:email`
+3. 포크한 저장소 또는 사용하는 저장소의 Secrets에 `ACCESS_TOKEN` 이름으로 등록합니다.
+4. 필요하면 아래 설정 변수도 함께 추가합니다.
+5. Actions 탭에서 `Generate Stats Images` 워크플로를 한 번 수동 실행합니다.
+6. 이후 생성된 카드는 `output` 브랜치의 `generated/` 아래에서 사용할 수 있습니다.
 
 기본 스케줄 실행도 설정되어 있으므로, 한 번만 초기 실행해 두면 이후 갱신 흐름을 확인하기 쉽습니다.
 
@@ -83,21 +82,21 @@ ACCESS_TOKEN=your_token_here GITHUB_ACTOR=your_github_login python3 generate_ima
 
 로컬 실행에서는 `git`이 설치되어 있어야 합니다. `Lines of code changed` 보정 로직이 필요할 때 git fallback이 실제로 동작해야 하기 때문입니다.
 
-## 필요한 토큰 권한
+## 토큰 권한
 
-이 포크는 `read:user`, `repo`, `user:email` 권한이 있는 personal access token을 전제로 문서화되어 있습니다.
+이 포크는 personal access token 사용을 권장하지만, 모든 권한이 모든 상황에서 반드시 필요한 것은 아닙니다.
 
-- `read:user`: 사용자 프로필 및 기본 사용자 데이터 조회
-- `repo`: private repository 포함 저장소 통계 조회
-- `user:email`: git fallback에서 contributor email 기준으로 커밋을 매칭할 때 필요
+- `read:user`: 사용자 프로필 및 기본 사용자 데이터 조회를 위한 권장 기본 권한
+- `repo`: private repository와 그 통계를 포함하려는 경우 필요
+- `user:email`: git fallback에서 contributor email 목록을 조회할 수 있어 매칭 정확도가 좋아지지만, `/user/emails`를 읽지 못해도 코드는 GitHub noreply 주소로 fallback할 수 있음
 
-코드상으로는 `ACCESS_TOKEN`이 없을 때 `GITHUB_TOKEN`으로 넘어갈 수 있지만, 이 포크의 의도된 운영 방식과 정확도 보장은 위 권한을 가진 personal access token 기준입니다.
+코드상으로는 `ACCESS_TOKEN`이 없을 때 `GITHUB_TOKEN`으로 넘어갈 수도 있지만, 이 포크를 안정적으로 운영하려면 personal access token 구성이 가장 적합합니다.
 
 ## 설정 옵션
 
 | 변수 | 필수 여부 | 설명 |
 | --- | --- | --- |
-| `ACCESS_TOKEN` | 안정적인 사용을 위해 사실상 필수 | API 요청과 git fallback 인증에 사용하는 personal access token |
+| `ACCESS_TOKEN` | 안정적인 사용을 위해 권장 | API 요청과 git fallback 인증에 사용하는 personal access token |
 | `EXCLUDED` | 선택 | 제외할 저장소 이름을 쉼표로 구분해 지정 |
 | `EXCLUDED_LANGS` | 선택 | languages 카드에서 제외할 언어 이름을 쉼표로 구분해 지정 |
 | `COUNT_STATS_FROM_FORKS` | 선택 | 비어 있지 않은 값이면 이 포크의 기존 통계 수집 흐름에서 더 넓은 저장소 집합을 포함 |
