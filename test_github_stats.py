@@ -163,9 +163,14 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         stats._fetch_lines_changed = mock.AsyncMock(return_value=(1, 1, "api"))
 
         first = await stats.lines_changed
+        summary = await stats.lines_changed_summary
         second = await stats.lines_changed
 
         self.assertEqual(first, (1, 1))
+        self.assertEqual(
+            summary,
+            {"api_success": 1, "git_fallback_success": 0, "failed": 0},
+        )
         self.assertEqual(second, (1, 1))
         stats._fetch_lines_changed.assert_awaited_once_with("owner/repo")
 
