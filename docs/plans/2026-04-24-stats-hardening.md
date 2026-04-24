@@ -28,6 +28,7 @@
 ### Task 1: Lock In Summary and Redaction Tests
 
 **Files:**
+
 - Modify: `test_github_stats.py`
 
 - [ ] **Step 1: Write the failing tests for `lines_changed` summary accounting**
@@ -114,6 +115,7 @@ git commit -m "test: add lines changed summary regressions"
 ### Task 2: Implement Quiet `lines_changed` Accounting in `Stats`
 
 **Files:**
+
 - Modify: `github_stats.py`
 - Test: `test_github_stats.py`
 
@@ -271,6 +273,7 @@ git commit -m "feat: add sanitized lines changed summary"
 ### Task 3: Add Entry-Point Summary Output and Small Speed Cleanup
 
 **Files:**
+
 - Modify: `generate_images.py`
 - Create: `test_generate_images.py`
 
@@ -394,6 +397,7 @@ git commit -m "perf: summarize lines changed sources once"
 ### Task 4: Rewrite the Project Documentation
 
 **Files:**
+
 - Modify: `README.md`
 - Create: `README-KR.md`
 
@@ -490,6 +494,7 @@ git commit -m "docs: rewrite project readmes"
 ### Task 5: Final Verification
 
 **Files:**
+
 - Modify: `github_stats.py`
 - Modify: `generate_images.py`
 - Modify: `test_github_stats.py`
