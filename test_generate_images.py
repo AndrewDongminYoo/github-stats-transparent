@@ -1,4 +1,3 @@
-import asyncio
 import sys
 import types
 import unittest
@@ -67,9 +66,9 @@ class GenerateImagesTests(unittest.IsolatedAsyncioTestCase):
             "{{ lines_changed }} {{ views }} {{ repos }}"
         )
 
-        with mock.patch("builtins.open", mock.mock_open(read_data=template)), mock.patch(
-            "generate_images.generate_output_folder"
-        ):
+        with mock.patch(
+            "builtins.open", mock.mock_open(read_data=template)
+        ), mock.patch("generate_images.generate_output_folder"):
             await generate_images.generate_overview(stats)
 
         self.assertEqual(stats.lines_changed_calls, 1)
