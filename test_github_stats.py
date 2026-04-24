@@ -94,6 +94,18 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result, (5, 2, "api"))
 
+    async def test_fetch_lines_changed_treats_no_content_as_zero_api_success(self):
+        stats = Stats("octocat", "token", None)
+        stats.queries = _FakeQueries(
+            responses={
+                "/repos/owner/repo/stats/contributors": [(204, {})],
+            }
+        )
+
+        result = await stats._fetch_lines_changed("owner/repo")
+
+        self.assertEqual(result, (0, 0, "api"))
+
     async def test_lines_changed_falls_back_to_git_when_stats_api_never_finishes(self):
         stats = Stats("octocat", "token", None)
         stats._repos = {"owner/repo"}
@@ -151,6 +163,32 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
                 "clone_failed": 0,
                 "git_log_failed": 0,
                 "other_api_error": 1,
+            },
+        )
+
+    async def test_lines_changed_summary_treats_no_content_as_api_success(self):
+        stats = Stats("octocat", "token", None)
+        stats._repos = {"owner/repo"}
+        stats.queries = _FakeQueries(
+            responses={
+                "/repos/owner/repo/stats/contributors": [(204, {})],
+            }
+        )
+
+        result = await stats.lines_changed
+        summary = await stats.lines_changed_summary
+
+        self.assertEqual(result, (0, 0))
+        self.assertEqual(
+            summary,
+            {
+                "api_success": 1,
+                "git_fallback_success": 0,
+                "failed": 0,
+                "git_unavailable": 0,
+                "clone_failed": 0,
+                "git_log_failed": 0,
+                "other_api_error": 0,
             },
         )
 

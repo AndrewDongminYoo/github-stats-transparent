@@ -667,6 +667,9 @@ Languages:
             verbose=False,
         )
 
+        if status == 204:
+            return 0, 0, "api"
+
         if status == 200 and isinstance(response, list):
             additions = 0
             deletions = 0
