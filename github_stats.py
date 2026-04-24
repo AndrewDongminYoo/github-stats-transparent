@@ -68,15 +68,17 @@ class Queries(object):
         :param params: Query parameters to be passed to the API
         :return: deserialized REST JSON output
         """
+        if params is None:
+            params = dict()
+        if path.startswith("/"):
+            path = path[1:]
+        headers = {
+            "Authorization": f"token {self.access_token}",
+        }
 
-        for _ in range(60):
-            headers = {
-                "Authorization": f"token {self.access_token}",
-            }
-            if params is None:
-                params = dict()
-            if path.startswith("/"):
-                path = path[1:]
+        delay = 2.0
+        max_attempts = 10
+        for attempt in range(max_attempts):
             try:
                 async with self.semaphore:
                     r = await self.session.get(
@@ -85,9 +87,12 @@ class Queries(object):
                         params=tuple(params.items()),
                     )
                 if r.status == 202:
-                    # print(f"{path} returned 202. Retrying...")
-                    print("A path returned 202. Retrying...")
-                    await asyncio.sleep(2)
+                    print(
+                        f"{path} returned 202. Retrying in {delay:.0f}s"
+                        f" (attempt {attempt + 1}/{max_attempts})..."
+                    )
+                    await asyncio.sleep(delay)
+                    delay = min(delay * 2, 60.0)
                     continue
 
                 result = await r.json()
@@ -104,13 +109,16 @@ class Queries(object):
                         timeout=30,
                     )
                     if r.status_code == 202:
-                        print("A path returned 202. Retrying...")
-                        await asyncio.sleep(2)
+                        print(
+                            f"{path} returned 202. Retrying in {delay:.0f}s"
+                            f" (attempt {attempt + 1}/{max_attempts})..."
+                        )
+                        await asyncio.sleep(delay)
+                        delay = min(delay * 2, 60.0)
                         continue
                     elif r.status_code == 200:
                         return r.json()
-        # print(f"There were too many 202s. Data for {path} will be incomplete.")
-        print("There were too many 202s. Data for this repository will be incomplete.")
+        print(f"Too many 202s for {path}. Data for this repository will be incomplete.")
         return dict()
 
     @staticmethod
