@@ -146,6 +146,8 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
             "api_success": 2,
             "git_fallback_success": 1,
             "failed": 1,
+            "repo_names": ["owner/api", "owner/fallback"],
+            "failed_repos": ["owner/private"],
         }
 
         summary = await stats.lines_changed_summary_text
