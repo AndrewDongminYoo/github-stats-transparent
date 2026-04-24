@@ -50,7 +50,12 @@ class _FakeQueries:
         return {}
 
     async def query_rest_response(
-        self, path, params=None, max_attempts=10, retry_statuses=None
+        self,
+        path,
+        params=None,
+        max_attempts=10,
+        retry_statuses=None,
+        verbose=True,
     ):
         responses = self._responses.get(path, [])
         if responses:
@@ -87,7 +92,7 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
 
         result = await stats._fetch_lines_changed("owner/repo")
 
-        self.assertEqual(result, (5, 2))
+        self.assertEqual(result, (5, 2, "api"))
 
     async def test_lines_changed_falls_back_to_git_when_stats_api_never_finishes(self):
         stats = Stats("octocat", "token", None)
@@ -97,7 +102,9 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
                 "/repos/owner/repo/stats/contributors": [(202, {})] * 10,
             }
         )
-        stats._get_lines_changed_from_git = mock.AsyncMock(return_value=(7, 3))
+        stats._get_lines_changed_from_git = mock.AsyncMock(
+            return_value=(7, 3, "git_fallback")
+        )
 
         with mock.patch("github_stats.asyncio.sleep", new=mock.AsyncMock()):
             result = await stats.lines_changed
@@ -216,7 +223,7 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
 
             result = await stats._get_lines_changed_from_git("owner/repo")
 
-        self.assertEqual(result, (7, 8))
+        self.assertEqual(result, (7, 8, "git_fallback"))
         log_command = run_mock.call_args_list[1].args[0]
         self.assertEqual(log_command[:4], ["git", "-C", log_command[2], "log"])
         self.assertEqual(log_command.count("--author"), 2)
@@ -252,7 +259,7 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
 
             result = await stats._get_lines_changed_from_git("owner/repo")
 
-        self.assertEqual(result, (1, 1))
+        self.assertEqual(result, (1, 1, "git_fallback"))
         clone_command = run_mock.call_args_list[0].args[0]
         self.assertIn("https://octocat:token@github.com/owner/repo.git", clone_command)
 

@@ -82,6 +82,7 @@ class Queries(object):
         params: Optional[Dict] = None,
         max_attempts: int = 10,
         retry_statuses: Optional[Set[int]] = None,
+        verbose: bool = True,
     ) -> Tuple[int, object]:
         """
         Make a request to the REST API and return both the status and body.
@@ -122,10 +123,11 @@ class Queries(object):
 
                 if r.status in retry_statuses and attempt + 1 < max_attempts:
                     delay = random.uniform(0, 4)
-                    print(
-                        f"{path} returned {r.status}. Retrying in {delay:.1f}s"
-                        f" (attempt {attempt + 1}/{max_attempts})..."
-                    )
+                    if verbose:
+                        print(
+                            f"{path} returned {r.status}. Retrying in {delay:.1f}s "
+                            f"(attempt {attempt + 1}/{max_attempts})..."
+                        )
                     await asyncio.sleep(delay)
                     continue
                 return last_status, last_result
@@ -155,15 +157,16 @@ class Queries(object):
 
                     if r.status_code in retry_statuses and attempt + 1 < max_attempts:
                         delay = random.uniform(0, 4)
-                        print(
-                            f"{path} returned {r.status_code}. Retrying in {delay:.1f}s"
-                            f" (attempt {attempt + 1}/{max_attempts})..."
-                        )
+                        if verbose:
+                            print(
+                                f"{path} returned {r.status_code}. Retrying in {delay:.1f}s "
+                                f"(attempt {attempt + 1}/{max_attempts})..."
+                            )
                         await asyncio.sleep(delay)
                         continue
                     return last_status, last_result
 
-        if last_status in retry_statuses:
+        if last_status in retry_statuses and verbose:
             print(
                 f"Too many {last_status}s for {path}. Falling back to git clone if applicable."
             )
@@ -330,7 +333,15 @@ class Stats(object):
         self._languages = None
         self._repos = None
         self._lines_changed = None
+        self._lines_changed_summary = None
         self._views = None
+
+    def _new_lines_changed_summary(self) -> Dict[str, int]:
+        return {
+            "api_success": 0,
+            "git_fallback_success": 0,
+            "failed": 0,
+        }
 
     async def to_str(self) -> str:
         """
@@ -563,10 +574,41 @@ Languages:
         results = await asyncio.gather(
             *[self._fetch_lines_changed(repo) for repo in repos]
         )
-        total_additions = sum(r[0] for r in results)
-        total_deletions = sum(r[1] for r in results)
+        summary = self._new_lines_changed_summary()
+        total_additions = 0
+        total_deletions = 0
+
+        for additions, deletions, source in results:
+            total_additions += additions
+            total_deletions += deletions
+            if source == "api":
+                summary["api_success"] += 1
+            elif source == "git_fallback":
+                summary["git_fallback_success"] += 1
+            else:
+                summary["failed"] += 1
+
         self._lines_changed = (total_additions, total_deletions)
+        self._lines_changed_summary = summary
         return self._lines_changed
+
+    @property
+    async def lines_changed_summary(self) -> Dict[str, int]:
+        if self._lines_changed_summary is not None:
+            return self._lines_changed_summary
+        await self.lines_changed
+        assert self._lines_changed_summary is not None
+        return self._lines_changed_summary
+
+    @property
+    async def lines_changed_summary_text(self) -> str:
+        summary = await self.lines_changed_summary
+        return (
+            "Lines changed sources: "
+            f"API {summary['api_success']} | "
+            f"git fallback {summary['git_fallback_success']} | "
+            f"failed {summary['failed']}"
+        )
 
     async def _get_login(self) -> str:
         if self._login is not None:
@@ -576,11 +618,12 @@ Languages:
             return self._login
         return "x-access-token"
 
-    async def _fetch_lines_changed(self, repo: str) -> Tuple[int, int]:
+    async def _fetch_lines_changed(self, repo: str) -> Tuple[int, int, str]:
         status, response = await self.queries.query_rest_response(
             f"/repos/{repo}/stats/contributors",
             max_attempts=10,
             retry_statuses={202, 403, 429},
+            verbose=False,
         )
 
         if status == 200 and isinstance(response, list):
@@ -598,14 +641,12 @@ Languages:
                 for week in author_obj.get("weeks", []):
                     additions += week.get("a", 0)
                     deletions += week.get("d", 0)
-            return additions, deletions
+            return additions, deletions, "api"
 
         if status in {202, 403, 429}:
             return await self._get_lines_changed_from_git(repo)
 
-        if status not in {0, 204}:
-            print(f"Failed to get contribution data for {repo} (status: {status}).")
-        return 0, 0
+        return 0, 0, "failed"
 
     async def _get_user_emails(self) -> List[str]:
         if self._user_emails_cache is not None:
@@ -634,27 +675,27 @@ Languages:
         self._user_emails_cache = emails
         return self._user_emails_cache
 
-    async def _get_lines_changed_from_git(self, repo: str) -> Tuple[int, int]:
+    async def _get_lines_changed_from_git(self, repo: str) -> Tuple[int, int, str]:
         if shutil.which("git") is None:
-            print("git is not installed. Skipping git fallback for lines changed.")
-            return 0, 0
+            return 0, 0, "failed"
 
         login = await self._get_login()
         emails = await self._get_user_emails()
-        print(f"Cloning {repo} to get lines changed...")
         async with self._clone_semaphore:
-            additions, deletions = await asyncio.to_thread(
+            result = await asyncio.to_thread(
                 self._get_lines_changed_from_git_sync,
                 repo,
                 emails,
                 login,
             )
-        print(f"Got {additions + deletions} line(s) changed by {login} in {repo}")
-        return additions, deletions
+        if result is None:
+            return 0, 0, "failed"
+        additions, deletions = result
+        return additions, deletions, "git_fallback"
 
     def _get_lines_changed_from_git_sync(
         self, repo: str, emails: List[str], login: str
-    ) -> Tuple[int, int]:
+    ) -> Optional[Tuple[int, int]]:
         repo_name = repo.replace("/", "_")
         safe_username = quote(login, safe="")
         safe_token = quote(self.queries.access_token, safe="")
@@ -678,8 +719,7 @@ Languages:
                 timeout=300,
             )
             if clone.returncode != 0:
-                print(f"Failed to clone {repo} to compute lines changed.")
-                return 0, 0
+                return None
 
             log_command = [
                 "git",
@@ -699,8 +739,7 @@ Languages:
                 timeout=300,
             )
             if log.returncode != 0:
-                print(f"Failed to inspect git history for {repo}.")
-                return 0, 0
+                return None
 
         additions = 0
         deletions = 0
