@@ -94,6 +94,8 @@ class Queries(object):
                     await asyncio.sleep(delay)
                     delay = min(delay * 2, 60.0)
                     continue
+                if r.status == 204:
+                    return dict()
 
                 result = await r.json()
                 if result is not None:
@@ -116,7 +118,9 @@ class Queries(object):
                         await asyncio.sleep(delay)
                         delay = min(delay * 2, 60.0)
                         continue
-                    elif r.status_code == 200:
+                    if r.status_code == 204:
+                        return dict()
+                    if r.status_code == 200:
                         return r.json()
         print(f"Too many 202s for {path}. Data for this repository will be incomplete.")
         return dict()
@@ -512,6 +516,20 @@ Languages:
         if self._lines_changed is not None:
             return self._lines_changed
 
+        repos = list(await self.all_repos)
+
+        # Trigger stats computation for all repos simultaneously, then wait
+        # for GitHub's backend to finish before collecting results.
+        async def warm_up(repo: str) -> None:
+            async with self.queries.semaphore:
+                await self.queries.session.get(
+                    f"https://api.github.com/repos/{repo}/stats/contributors",
+                    headers={"Authorization": f"token {self.queries.access_token}"},
+                )
+
+        await asyncio.gather(*[warm_up(repo) for repo in repos])
+        await asyncio.sleep(5)
+
         async def fetch_contributions(repo: str) -> Tuple[int, int]:
             r = await self.queries.query_rest(f"/repos/{repo}/stats/contributors")
             additions = 0
@@ -531,7 +549,7 @@ Languages:
             return additions, deletions
 
         results = await asyncio.gather(
-            *[fetch_contributions(repo) for repo in await self.all_repos]
+            *[fetch_contributions(repo) for repo in repos]
         )
         total_additions = sum(r[0] for r in results)
         total_deletions = sum(r[1] for r in results)
