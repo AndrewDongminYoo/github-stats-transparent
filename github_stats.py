@@ -516,19 +516,33 @@ Languages:
         if self._lines_changed is not None:
             return self._lines_changed
 
-        repos = list(await self.all_repos)
+        # External contributed-to repos (all_repos) cause persistent 202s:                                
+        # their large commit histories overwhelm GitHub's stats computation.                              
+        repos = list(await self.repos)
 
-        # Trigger stats computation for all repos simultaneously, then wait
-        # for GitHub's backend to finish before collecting results.
-        async def warm_up(repo: str) -> None:
+        # Trigger stats computation and check whether any are not yet cached.
+        async def trigger_computation(repo: str) -> bool:
             async with self.queries.semaphore:
-                await self.queries.session.get(
-                    f"https://api.github.com/repos/{repo}/stats/contributors",
-                    headers={"Authorization": f"token {self.queries.access_token}"},
-                )
+                try:
+                    r = await self.queries.session.get(
+                        f"https://api.github.com/repos/{repo}/stats/contributors",
+                        headers={"Authorization": f"token {self.queries.access_token}"},
+                    )
+                    print(f"Triggered stats computation for {repo}, status: {r.status}")
+                    return r.status == 202
+                except Exception:
+                    print(f"Error occurred while triggering stats computation for {repo}")
+                    return True
 
-        await asyncio.gather(*[warm_up(repo) for repo in repos])
-        await asyncio.sleep(5)
+        warm_up_flags = await asyncio.gather(                                                             
+            *[trigger_computation(repo) for repo in repos]                                                
+        )                                                                                                 
+        if any(warm_up_flags):                                                                            
+            # GitHub fires a background job when 202 is returned.                                         
+            # The docs recommend waiting before retrying.                                                 
+            pending = sum(warm_up_flags)                                                                  
+            print(f"{pending}/{len(repos)} repos need stats computation. Waiting 60s...")                 
+            await asyncio.sleep(60) 
 
         async def fetch_contributions(repo: str) -> Tuple[int, int]:
             r = await self.queries.query_rest(f"/repos/{repo}/stats/contributors")
