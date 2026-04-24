@@ -26,7 +26,7 @@ class Queries(object):
 
     def __init__(
         self,
-        username: str,
+        username: Optional[str],
         access_token: str,
         session: aiohttp.ClientSession,
         max_connections: int = 10,
@@ -305,7 +305,7 @@ class Stats(object):
 
     def __init__(
         self,
-        username: str,
+        username: Optional[str],
         access_token: str,
         session: aiohttp.ClientSession,
         exclude_repos: Optional[Set] = None,
@@ -322,6 +322,7 @@ class Stats(object):
         self._clone_semaphore = asyncio.Semaphore(3)
         self._user_emails_cache: Optional[List[str]] = None
 
+        self._login = username
         self._name = None
         self._stargazers = None
         self._forks = None
@@ -371,23 +372,15 @@ Languages:
                 )
             )
             raw_results = raw_results if raw_results is not None else {}
+            viewer = raw_results.get("data", {}).get("viewer", {})
 
-            self._name = raw_results.get("data", {}).get("viewer", {}).get("name", None)
+            self._login = viewer.get("login", self._login)
+            self._name = viewer.get("name", None)
             if self._name is None:
-                self._name = (
-                    raw_results.get("data", {})
-                    .get("viewer", {})
-                    .get("login", "No Name")
-                )
+                self._name = viewer.get("login", "No Name")
 
-            contrib_repos = (
-                raw_results.get("data", {})
-                .get("viewer", {})
-                .get("repositoriesContributedTo", {})
-            )
-            owned_repos = (
-                raw_results.get("data", {}).get("viewer", {}).get("repositories", {})
-            )
+            contrib_repos = viewer.get("repositoriesContributedTo", {})
+            owned_repos = viewer.get("repositories", {})
 
             repos = owned_repos.get("nodes", [])
             if self._consider_forked_repos:
@@ -573,6 +566,14 @@ Languages:
         self._lines_changed = (total_additions, total_deletions)
         return self._lines_changed
 
+    async def _get_login(self) -> str:
+        if self._login is not None:
+            return self._login
+        await self.get_stats()
+        if self._login is not None:
+            return self._login
+        return "x-access-token"
+
     async def _fetch_lines_changed(self, repo: str) -> Tuple[int, int]:
         status, response = await self.queries.query_rest_response(
             f"/repos/{repo}/stats/contributors",
@@ -583,13 +584,14 @@ Languages:
         if status == 200 and isinstance(response, list):
             additions = 0
             deletions = 0
+            login = await self._get_login()
             for author_obj in response:
                 if not isinstance(author_obj, dict) or not isinstance(
                     author_obj.get("author", {}), dict
                 ):
                     continue
                 author = author_obj.get("author", {}).get("login", "")
-                if author != self.username:
+                if author != login:
                     continue
                 for week in author_obj.get("weeks", []):
                     additions += week.get("a", 0)
@@ -620,11 +622,12 @@ Languages:
             ]
 
         if not emails:
+            login = await self._get_login()
             print(
                 "Failed to get user emails. Falling back to the noreply address; "
                 "token may be missing user:email permission."
             )
-            emails = [f"{self.username}@users.noreply.github.com"]
+            emails = [f"{login}@users.noreply.github.com"]
 
         self._user_emails_cache = emails
         return self._user_emails_cache
@@ -634,6 +637,7 @@ Languages:
             print("git is not installed. Skipping git fallback for lines changed.")
             return 0, 0
 
+        login = await self._get_login()
         emails = await self._get_user_emails()
         print(f"Cloning {repo} to get lines changed...")
         async with self._clone_semaphore:
@@ -641,17 +645,18 @@ Languages:
                 self._get_lines_changed_from_git_sync,
                 repo,
                 emails,
+                login,
             )
         print(
-            f"Got {additions + deletions} line(s) changed by {self.username} in {repo}"
+            f"Got {additions + deletions} line(s) changed by {login} in {repo}"
         )
         return additions, deletions
 
     def _get_lines_changed_from_git_sync(
-        self, repo: str, emails: List[str]
+        self, repo: str, emails: List[str], login: str
     ) -> Tuple[int, int]:
         repo_name = repo.replace("/", "_")
-        safe_username = quote(self.username, safe="")
+        safe_username = quote(login, safe="")
         safe_token = quote(self.queries.access_token, safe="")
         repo_url = f"https://{safe_username}:{safe_token}@github.com/{repo}.git"
 
