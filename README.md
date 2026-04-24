@@ -21,7 +21,7 @@
 
 <!-- TODO: Add details and screenshots -->
 
-1. [여기](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) 안내에 따라 `read:user` 및 `repo` 권한이 있는 개인 액세스 토큰을 생성하고, 생성된 토큰을 복사합니다.
+1. [여기](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) 안내에 따라 `read:user`, `repo`, `user:email` 권한이 있는 개인 액세스 토큰을 생성하고, 생성된 토큰을 복사합니다.
 
 2. [이 저장소 포크하기](https://github.com/AndrewDongminYoo/github-stats-transparent/fork)를 클릭해 저장소를 포크합니다.
 
