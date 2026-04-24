@@ -306,6 +306,13 @@ class Stats(object):
     Retrieve and store statistics about GitHub usage.
     """
 
+    _LINES_CHANGED_FAILURE_LABELS = {
+        "git_unavailable": "git unavailable",
+        "clone_failed": "clone failed",
+        "git_log_failed": "git log failed",
+        "other_api_error": "other/api error",
+    }
+
     def __init__(
         self,
         username: Optional[str],
@@ -341,7 +348,19 @@ class Stats(object):
             "api_success": 0,
             "git_fallback_success": 0,
             "failed": 0,
+            "git_unavailable": 0,
+            "clone_failed": 0,
+            "git_log_failed": 0,
+            "other_api_error": 0,
         }
+
+    def _clear_lines_changed_cache(self) -> None:
+        self._lines_changed = None
+        self._lines_changed_summary = None
+
+    async def _recompute_lines_changed_cache(self) -> None:
+        self._clear_lines_changed_cache()
+        await self.lines_changed
 
     async def to_str(self) -> str:
         """
@@ -587,6 +606,10 @@ Languages:
                 summary["git_fallback_success"] += 1
             else:
                 summary["failed"] += 1
+                if source in self._LINES_CHANGED_FAILURE_LABELS:
+                    summary[source] += 1
+                else:
+                    summary["other_api_error"] += 1
 
         self._lines_changed = (total_additions, total_deletions)
         self._lines_changed_summary = summary
@@ -596,8 +619,7 @@ Languages:
     async def lines_changed_summary(self) -> Dict[str, int]:
         if self._lines_changed_summary is not None:
             return self._lines_changed_summary
-        self._lines_changed = None
-        await self.lines_changed
+        await self._recompute_lines_changed_cache()
         if self._lines_changed_summary is None:
             self._lines_changed_summary = self._new_lines_changed_summary()
         return self._lines_changed_summary
@@ -611,6 +633,23 @@ Languages:
             f"git fallback {summary['git_fallback_success']} | "
             f"failed {summary['failed']}"
         )
+
+    @property
+    async def lines_changed_failure_summary_text(self) -> Optional[str]:
+        summary = await self.lines_changed_summary
+        if summary["failed"] == 0:
+            return None
+
+        reasons = []
+        for key, label in self._LINES_CHANGED_FAILURE_LABELS.items():
+            count = summary.get(key, 0)
+            if count > 0:
+                reasons.append(f"{label} {count}")
+
+        if not reasons:
+            return None
+
+        return "Lines changed failure causes: " + " | ".join(reasons)
 
     async def _get_login(self) -> str:
         if self._login is not None:
@@ -648,7 +687,7 @@ Languages:
         if status in {202, 403, 429}:
             return await self._get_lines_changed_from_git(repo)
 
-        return 0, 0, "failed"
+        return 0, 0, "other_api_error"
 
     async def _get_user_emails(self) -> List[str]:
         if self._user_emails_cache is not None:
@@ -679,7 +718,7 @@ Languages:
 
     async def _get_lines_changed_from_git(self, repo: str) -> Tuple[int, int, str]:
         if shutil.which("git") is None:
-            return 0, 0, "failed"
+            return 0, 0, "git_unavailable"
 
         login = await self._get_login()
         emails = await self._get_user_emails()
@@ -690,14 +729,11 @@ Languages:
                 emails,
                 login,
             )
-        if result is None:
-            return 0, 0, "failed"
-        additions, deletions = result
-        return additions, deletions, "git_fallback"
+        return result
 
     def _get_lines_changed_from_git_sync(
         self, repo: str, emails: List[str], login: str
-    ) -> Optional[Tuple[int, int]]:
+    ) -> Tuple[int, int, str]:
         repo_name = repo.replace("/", "_")
         safe_username = quote(login, safe="")
         safe_token = quote(self.queries.access_token, safe="")
@@ -721,7 +757,7 @@ Languages:
                 timeout=300,
             )
             if clone.returncode != 0:
-                return None
+                return 0, 0, "clone_failed"
 
             log_command = [
                 "git",
@@ -741,7 +777,7 @@ Languages:
                 timeout=300,
             )
             if log.returncode != 0:
-                return None
+                return 0, 0, "git_log_failed"
 
         additions = 0
         deletions = 0
@@ -760,7 +796,7 @@ Languages:
             except ValueError:
                 pass
 
-        return additions, deletions
+        return additions, deletions, "git_fallback"
 
     @property
     async def views(self) -> int:

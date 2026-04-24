@@ -72,10 +72,10 @@ That keeps the logs useful without dumping per-repository failure details into t
 python3 -m pip install -r requirements.txt
 ```
 
-2. Run the generator with your token and GitHub login:
+2. Run the generator with your token. `GITHUB_ACTOR` is optional locally; if it is unset, the script resolves the login from the authenticated viewer:
 
 ```bash
-ACCESS_TOKEN=your_token_here GITHUB_ACTOR=your_github_login python3 generate_images.py
+ACCESS_TOKEN=your_token_here python3 generate_images.py
 ```
 
 For local execution, `git` must also be available because the `Lines of code changed` fallback depends on git history when the stats API is not sufficient.
@@ -98,7 +98,7 @@ The script can also fall back to `GITHUB_TOKEN` if `ACCESS_TOKEN` is missing, bu
 | `EXCLUDED` | No | Comma-separated repository names to exclude from stats collection. |
 | `EXCLUDED_LANGS` | No | Comma-separated language names to exclude from the language card. |
 | `COUNT_STATS_FROM_FORKS` | No | Any non-empty value enables the broader repository set used by this fork's existing stats collection flow. |
-| `GITHUB_ACTOR` | Provided by Actions, required locally | GitHub login used to resolve the authenticated user for local runs. |
+| `GITHUB_ACTOR` | Provided by Actions, optional locally | GitHub login override for local runs. If unset, the script resolves the login from the authenticated viewer. |
 
 ## Limitations and Expected Behavior
 

@@ -57,6 +57,16 @@ class _FakeStats:
     async def lines_changed_summary_text(self):
         return "Lines changed sources: API 2 | git fallback 1 | failed 0"
 
+    @property
+    async def lines_changed_failure_summary_text(self):
+        return None
+
+
+class _FailureStats(_FakeStats):
+    @property
+    async def lines_changed_failure_summary_text(self):
+        return "Lines changed failure causes: git unavailable 1 | clone failed 1"
+
 
 class GenerateImagesTests(unittest.IsolatedAsyncioTestCase):
     async def test_generate_overview_reads_lines_changed_once(self):
@@ -81,4 +91,20 @@ class GenerateImagesTests(unittest.IsolatedAsyncioTestCase):
 
         print_mock.assert_called_once_with(
             "Lines changed sources: API 2 | git fallback 1 | failed 0"
+        )
+
+    async def test_print_lines_changed_summary_emits_optional_failure_line(self):
+        stats = _FailureStats()
+
+        with mock.patch("builtins.print") as print_mock:
+            await generate_images.print_lines_changed_summary(stats)
+
+        self.assertEqual(
+            print_mock.call_args_list,
+            [
+                mock.call("Lines changed sources: API 2 | git fallback 1 | failed 0"),
+                mock.call(
+                    "Lines changed failure causes: git unavailable 1 | clone failed 1"
+                ),
+            ],
         )

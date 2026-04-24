@@ -103,6 +103,9 @@ async def print_lines_changed_summary(s: Stats) -> None:
     :param s: Represents user's GitHub statistics
     """
     print(await s.lines_changed_summary_text)
+    failure_summary = await s.lines_changed_failure_summary_text
+    if failure_summary is not None:
+        print(failure_summary)
 
 
 ################################################################################

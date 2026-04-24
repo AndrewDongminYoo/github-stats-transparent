@@ -74,10 +74,10 @@
 python3 -m pip install -r requirements.txt
 ```
 
-2. 토큰과 GitHub 사용자명을 지정해서 실행합니다.
+2. 토큰만 지정해서 실행해도 됩니다. 로컬에서 `GITHUB_ACTOR`를 비워 두면 스크립트가 인증된 viewer 기준으로 로그인 이름을 조회합니다.
 
 ```bash
-ACCESS_TOKEN=your_token_here GITHUB_ACTOR=your_github_login python3 generate_images.py
+ACCESS_TOKEN=your_token_here python3 generate_images.py
 ```
 
 로컬 실행에서는 `git`이 설치되어 있어야 합니다. `Lines of code changed` 보정 로직이 필요할 때 git fallback이 실제로 동작해야 하기 때문입니다.
@@ -100,7 +100,7 @@ ACCESS_TOKEN=your_token_here GITHUB_ACTOR=your_github_login python3 generate_ima
 | `EXCLUDED` | 선택 | 제외할 저장소 이름을 쉼표로 구분해 지정 |
 | `EXCLUDED_LANGS` | 선택 | languages 카드에서 제외할 언어 이름을 쉼표로 구분해 지정 |
 | `COUNT_STATS_FROM_FORKS` | 선택 | 비어 있지 않은 값이면 이 포크의 기존 통계 수집 흐름에서 더 넓은 저장소 집합을 포함 |
-| `GITHUB_ACTOR` | Actions에서는 자동 제공, 로컬에서는 필요 | 로컬 실행 시 인증 사용자의 GitHub 로그인 이름 |
+| `GITHUB_ACTOR` | Actions에서는 자동 제공, 로컬에서는 선택 | 로컬 실행 시 GitHub 로그인 이름을 직접 지정하는 override 값. 비워 두면 인증된 viewer 기준으로 자동 조회 |
 
 ## 제한 사항과 기대 동작
 

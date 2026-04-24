@@ -143,7 +143,15 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, (7, 3))
         self.assertEqual(
             summary,
-            {"api_success": 1, "git_fallback_success": 1, "failed": 1},
+            {
+                "api_success": 1,
+                "git_fallback_success": 1,
+                "failed": 1,
+                "git_unavailable": 0,
+                "clone_failed": 0,
+                "git_log_failed": 0,
+                "other_api_error": 1,
+            },
         )
 
     async def test_lines_changed_summary_redacts_repository_names(self):
@@ -153,8 +161,10 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
             "api_success": 2,
             "git_fallback_success": 1,
             "failed": 1,
-            "repo_names": ["owner/api", "owner/fallback"],
-            "failed_repos": ["owner/private"],
+            "git_unavailable": 0,
+            "clone_failed": 1,
+            "git_log_failed": 0,
+            "other_api_error": 0,
         }
 
         summary = await stats.lines_changed_summary_text
@@ -165,6 +175,26 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertNotIn("owner/api", summary)
         self.assertNotIn("owner/fallback", summary)
+
+    async def test_lines_changed_failure_summary_text_only_reports_nonzero_causes(self):
+        stats = Stats("octocat", "token", None)
+        stats._lines_changed_summary = {
+            "api_success": 1,
+            "git_fallback_success": 0,
+            "failed": 3,
+            "git_unavailable": 1,
+            "clone_failed": 1,
+            "git_log_failed": 0,
+            "other_api_error": 1,
+        }
+
+        failure_summary = await stats.lines_changed_failure_summary_text
+
+        self.assertEqual(
+            failure_summary,
+            "Lines changed failure causes: "
+            "git unavailable 1 | clone failed 1 | other/api error 1",
+        )
 
     async def test_lines_changed_summary_recovers_from_missing_summary_cache(self):
         stats = Stats("octocat", "token", None)
@@ -177,9 +207,49 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             summary,
-            {"api_success": 1, "git_fallback_success": 0, "failed": 0},
+            {
+                "api_success": 1,
+                "git_fallback_success": 0,
+                "failed": 0,
+                "git_unavailable": 0,
+                "clone_failed": 0,
+                "git_log_failed": 0,
+                "other_api_error": 0,
+            },
         )
         self.assertEqual(stats._lines_changed, (2, 1))
+        stats._fetch_lines_changed.assert_awaited_once_with("owner/repo")
+
+    async def test_recompute_lines_changed_cache_replaces_stale_values(self):
+        stats = Stats("octocat", "token", None)
+        stats._repos = {"owner/repo"}
+        stats._lines_changed = (99, 99)
+        stats._lines_changed_summary = {
+            "api_success": 0,
+            "git_fallback_success": 0,
+            "failed": 1,
+            "git_unavailable": 1,
+            "clone_failed": 0,
+            "git_log_failed": 0,
+            "other_api_error": 0,
+        }
+        stats._fetch_lines_changed = mock.AsyncMock(return_value=(4, 2, "api"))
+
+        await stats._recompute_lines_changed_cache()
+
+        self.assertEqual(stats._lines_changed, (4, 2))
+        self.assertEqual(
+            stats._lines_changed_summary,
+            {
+                "api_success": 1,
+                "git_fallback_success": 0,
+                "failed": 0,
+                "git_unavailable": 0,
+                "clone_failed": 0,
+                "git_log_failed": 0,
+                "other_api_error": 0,
+            },
+        )
         stats._fetch_lines_changed.assert_awaited_once_with("owner/repo")
 
     async def test_lines_changed_result_is_reused_after_first_calculation(self):
@@ -194,7 +264,15 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(first, (1, 1))
         self.assertEqual(
             summary,
-            {"api_success": 1, "git_fallback_success": 0, "failed": 0},
+            {
+                "api_success": 1,
+                "git_fallback_success": 0,
+                "failed": 0,
+                "git_unavailable": 0,
+                "clone_failed": 0,
+                "git_log_failed": 0,
+                "other_api_error": 0,
+            },
         )
         self.assertEqual(second, (1, 1))
         stats._fetch_lines_changed.assert_awaited_once_with("owner/repo")
@@ -285,7 +363,7 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         with mock.patch("github_stats.shutil.which", return_value=None):
             result = await stats._get_lines_changed_from_git("owner/repo")
 
-        self.assertEqual(result, (0, 0, "failed"))
+        self.assertEqual(result, (0, 0, "git_unavailable"))
 
     async def test_lines_changed_summary_counts_failed_git_fallback(self):
         stats = Stats("octocat", "token", None)
@@ -306,7 +384,43 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, (0, 0))
         self.assertEqual(
             summary,
-            {"api_success": 0, "git_fallback_success": 0, "failed": 1},
+            {
+                "api_success": 0,
+                "git_fallback_success": 0,
+                "failed": 1,
+                "git_unavailable": 0,
+                "clone_failed": 0,
+                "git_log_failed": 0,
+                "other_api_error": 1,
+            },
+        )
+
+    async def test_lines_changed_summary_counts_failed_git_unavailable(self):
+        stats = Stats("octocat", "token", None)
+        stats._repos = {"owner/repo"}
+        stats.queries = _FakeQueries(
+            responses={
+                "/repos/owner/repo/stats/contributors": [(202, {})] * 10,
+            }
+        )
+        stats._get_lines_changed_from_git = mock.AsyncMock(
+            return_value=(0, 0, "git_unavailable")
+        )
+
+        with mock.patch("github_stats.asyncio.sleep", new=mock.AsyncMock()):
+            summary = await stats.lines_changed_summary
+
+        self.assertEqual(
+            summary,
+            {
+                "api_success": 0,
+                "git_fallback_success": 0,
+                "failed": 1,
+                "git_unavailable": 1,
+                "clone_failed": 0,
+                "git_log_failed": 0,
+                "other_api_error": 0,
+            },
         )
 
 
