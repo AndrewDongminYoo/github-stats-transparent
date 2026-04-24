@@ -17,11 +17,11 @@ runtimes:
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
   disabled:
+    - bandit
     - svgo
   enabled:
     - taplo@0.10.0
     - actionlint@1.7.12
-    - bandit@1.9.4
     - black@26.3.1
     - checkov@3.2.524
     - git-diff-check

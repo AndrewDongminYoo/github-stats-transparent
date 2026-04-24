@@ -560,7 +560,9 @@ Languages:
         # their large commit histories overwhelm GitHub's stats computation.
         repos = list(await self.repos)
 
-        results = await asyncio.gather(*[self._fetch_lines_changed(repo) for repo in repos])
+        results = await asyncio.gather(
+            *[self._fetch_lines_changed(repo) for repo in repos]
+        )
         total_additions = sum(r[0] for r in results)
         total_deletions = sum(r[1] for r in results)
         self._lines_changed = (total_additions, total_deletions)
@@ -647,9 +649,7 @@ Languages:
                 emails,
                 login,
             )
-        print(
-            f"Got {additions + deletions} line(s) changed by {login} in {repo}"
-        )
+        print(f"Got {additions + deletions} line(s) changed by {login} in {repo}")
         return additions, deletions
 
     def _get_lines_changed_from_git_sync(
@@ -681,7 +681,14 @@ Languages:
                 print(f"Failed to clone {repo} to compute lines changed.")
                 return 0, 0
 
-            log_command = ["git", "-C", repo_path, "log", "--numstat", "--pretty=tformat:"]
+            log_command = [
+                "git",
+                "-C",
+                repo_path,
+                "log",
+                "--numstat",
+                "--pretty=tformat:",
+            ]
             for email in emails:
                 log_command.extend(["--author", email])
 

@@ -20,7 +20,7 @@ sys.modules.setdefault(
     ),
 )
 
-from github_stats import Stats
+from github_stats import Stats  # noqa: E402
 
 
 class _FakeResponse:
@@ -132,7 +132,9 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
             "github_stats.subprocess.run"
         ) as run_mock:
             run_mock.side_effect = [
-                subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+                subprocess.CompletedProcess(
+                    args=[], returncode=0, stdout="", stderr=""
+                ),
                 subprocess.CompletedProcess(
                     args=[],
                     returncode=0,
@@ -166,7 +168,9 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
             "github_stats.subprocess.run"
         ) as run_mock:
             run_mock.side_effect = [
-                subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+                subprocess.CompletedProcess(
+                    args=[], returncode=0, stdout="", stderr=""
+                ),
                 subprocess.CompletedProcess(
                     args=[],
                     returncode=0,
