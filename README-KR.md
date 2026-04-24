@@ -94,13 +94,13 @@ ACCESS_TOKEN=your_token_here python3 generate_images.py
 
 ## 설정 옵션
 
-| 변수 | 필수 여부 | 설명 |
-| --- | --- | --- |
-| `ACCESS_TOKEN` | 안정적인 사용을 위해 권장 | API 요청과 git fallback 인증에 사용하는 personal access token |
-| `EXCLUDED` | 선택 | 제외할 저장소 이름을 쉼표로 구분해 지정 |
-| `EXCLUDED_LANGS` | 선택 | languages 카드에서 제외할 언어 이름을 쉼표로 구분해 지정 |
-| `COUNT_STATS_FROM_FORKS` | 선택 | 비어 있지 않은 값이면 이 포크의 기존 통계 수집 흐름에서 더 넓은 저장소 집합을 포함 |
-| `GITHUB_ACTOR` | Actions에서는 자동 제공, 로컬에서는 선택 | 로컬 실행 시 GitHub 로그인 이름을 직접 지정하는 override 값. 비워 두면 인증된 viewer 기준으로 자동 조회 |
+| 변수                     | 필수 여부                                | 설명                                                                                                    |
+| ------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `ACCESS_TOKEN`           | 안정적인 사용을 위해 권장                | API 요청과 git fallback 인증에 사용하는 personal access token                                           |
+| `EXCLUDED`               | 선택                                     | 제외할 저장소 이름을 쉼표로 구분해 지정                                                                 |
+| `EXCLUDED_LANGS`         | 선택                                     | languages 카드에서 제외할 언어 이름을 쉼표로 구분해 지정                                                |
+| `COUNT_STATS_FROM_FORKS` | 선택                                     | 비어 있지 않은 값이면 이 포크의 기존 통계 수집 흐름에서 더 넓은 저장소 집합을 포함                      |
+| `GITHUB_ACTOR`           | Actions에서는 자동 제공, 로컬에서는 선택 | 로컬 실행 시 GitHub 로그인 이름을 직접 지정하는 override 값. 비워 두면 인증된 viewer 기준으로 자동 조회 |
 
 ## 제한 사항과 기대 동작
 

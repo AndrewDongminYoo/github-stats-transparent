@@ -92,13 +92,13 @@ The script can also fall back to `GITHUB_TOKEN` if `ACCESS_TOKEN` is missing, bu
 
 ## Configuration Options
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `ACCESS_TOKEN` | Recommended for reliable use | Personal access token used for API requests and git fallback authentication. |
-| `EXCLUDED` | No | Comma-separated repository names to exclude from stats collection. |
-| `EXCLUDED_LANGS` | No | Comma-separated language names to exclude from the language card. |
-| `COUNT_STATS_FROM_FORKS` | No | Any non-empty value enables the broader repository set used by this fork's existing stats collection flow. |
-| `GITHUB_ACTOR` | Provided by Actions, optional locally | GitHub login override for local runs. If unset, the script resolves the login from the authenticated viewer. |
+| Variable                 | Required                              | Description                                                                                                  |
+| ------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `ACCESS_TOKEN`           | Recommended for reliable use          | Personal access token used for API requests and git fallback authentication.                                 |
+| `EXCLUDED`               | No                                    | Comma-separated repository names to exclude from stats collection.                                           |
+| `EXCLUDED_LANGS`         | No                                    | Comma-separated language names to exclude from the language card.                                            |
+| `COUNT_STATS_FROM_FORKS` | No                                    | Any non-empty value enables the broader repository set used by this fork's existing stats collection flow.   |
+| `GITHUB_ACTOR`           | Provided by Actions, optional locally | GitHub login override for local runs. If unset, the script resolves the login from the authenticated viewer. |
 
 ## Limitations and Expected Behavior
 
