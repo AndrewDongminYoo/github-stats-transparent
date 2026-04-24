@@ -44,7 +44,7 @@
 
 이것이 이 포크의 핵심 수정 사항입니다. 즉, 투명 Python 버전이 이제 `Lines of code changed`에 대해 upstream Zig 버전과 같은 방향의 복구 전략을 따릅니다.
 
-또한 워크플로 로그에는 저장소별 상세 오류 대신 아래 형태의 한 줄 요약만 남깁니다.
+또한 워크플로 로그에서는 저장소별 상세 오류 출력을 억제하고, 주된 요약 출력으로 아래 형태의 sanitize된 한 줄 요약을 남깁니다.
 
 `Lines changed sources: API X | git fallback Y | failed Z`
 
