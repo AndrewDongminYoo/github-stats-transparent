@@ -596,8 +596,10 @@ Languages:
     async def lines_changed_summary(self) -> Dict[str, int]:
         if self._lines_changed_summary is not None:
             return self._lines_changed_summary
+        self._lines_changed = None
         await self.lines_changed
-        assert self._lines_changed_summary is not None
+        if self._lines_changed_summary is None:
+            self._lines_changed_summary = self._new_lines_changed_summary()
         return self._lines_changed_summary
 
     @property

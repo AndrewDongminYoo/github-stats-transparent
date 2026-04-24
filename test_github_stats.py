@@ -166,6 +166,22 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("owner/api", summary)
         self.assertNotIn("owner/fallback", summary)
 
+    async def test_lines_changed_summary_recovers_from_missing_summary_cache(self):
+        stats = Stats("octocat", "token", None)
+        stats._repos = {"owner/repo"}
+        stats._lines_changed = (99, 99)
+        stats._lines_changed_summary = None
+        stats._fetch_lines_changed = mock.AsyncMock(return_value=(2, 1, "api"))
+
+        summary = await stats.lines_changed_summary
+
+        self.assertEqual(
+            summary,
+            {"api_success": 1, "git_fallback_success": 0, "failed": 0},
+        )
+        self.assertEqual(stats._lines_changed, (2, 1))
+        stats._fetch_lines_changed.assert_awaited_once_with("owner/repo")
+
     async def test_lines_changed_result_is_reused_after_first_calculation(self):
         stats = Stats("octocat", "token", None)
         stats._repos = {"owner/repo"}
@@ -262,6 +278,36 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result, (1, 1, "git_fallback"))
         clone_command = run_mock.call_args_list[0].args[0]
         self.assertIn("https://octocat:token@github.com/owner/repo.git", clone_command)
+
+    async def test_git_fallback_returns_failed_when_git_is_unavailable(self):
+        stats = Stats("octocat", "token", None)
+
+        with mock.patch("github_stats.shutil.which", return_value=None):
+            result = await stats._get_lines_changed_from_git("owner/repo")
+
+        self.assertEqual(result, (0, 0, "failed"))
+
+    async def test_lines_changed_summary_counts_failed_git_fallback(self):
+        stats = Stats("octocat", "token", None)
+        stats._repos = {"owner/repo"}
+        stats.queries = _FakeQueries(
+            responses={
+                "/repos/owner/repo/stats/contributors": [(202, {})] * 10,
+            }
+        )
+        stats._get_lines_changed_from_git = mock.AsyncMock(
+            return_value=(0, 0, "failed")
+        )
+
+        with mock.patch("github_stats.asyncio.sleep", new=mock.AsyncMock()):
+            result = await stats.lines_changed
+            summary = await stats.lines_changed_summary
+
+        self.assertEqual(result, (0, 0))
+        self.assertEqual(
+            summary,
+            {"api_success": 0, "git_fallback_success": 0, "failed": 1},
+        )
 
 
 if __name__ == "__main__":
