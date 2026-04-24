@@ -35,11 +35,12 @@ async def generate_overview(s: Stats) -> None:
     with open("templates/overview.svg", "r", encoding="utf-8") as f:
         output = f.read()
 
+    lines_changed = await s.lines_changed
+    changed = lines_changed[0] + lines_changed[1]
     output = re.sub("{{ name }}", await s.name, output)
     output = re.sub("{{ stars }}", f"{await s.stargazers:,}", output)
     output = re.sub("{{ forks }}", f"{await s.forks:,}", output)
     output = re.sub("{{ contributions }}", f"{await s.total_contributions:,}", output)
-    changed = (await s.lines_changed)[0] + (await s.lines_changed)[1]
     output = re.sub("{{ lines_changed }}", f"{changed:,}", output)
     output = re.sub("{{ views }}", f"{await s.views:,}", output)
     output = re.sub("{{ repos }}", f"{len(await s.all_repos):,}", output)
@@ -96,6 +97,14 @@ fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8z"></path></svg>
         f.write(output)
 
 
+async def print_lines_changed_summary(s: Stats) -> None:
+    """
+    Print a one-line summary of lines changed data sources
+    :param s: Represents user's GitHub statistics
+    """
+    print(await s.lines_changed_summary_text)
+
+
 ################################################################################
 # Main Function
 ################################################################################
@@ -130,6 +139,7 @@ async def main() -> None:
             consider_forked_repos=consider_forked_repos,
         )
         await asyncio.gather(generate_languages(s), generate_overview(s))
+        await print_lines_changed_summary(s)
 
 
 if __name__ == "__main__":
