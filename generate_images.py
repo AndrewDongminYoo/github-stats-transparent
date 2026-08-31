@@ -99,7 +99,8 @@ fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8z"></path></svg>
 
 async def print_lines_changed_summary(s: Stats) -> None:
     """
-    Print a one-line summary of lines changed data sources
+    Print a summary of lines changed data sources, plus a failure-cause line
+    when any repository failed
     :param s: Represents user's GitHub statistics
     """
     print(await s.lines_changed_summary_text)

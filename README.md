@@ -38,15 +38,20 @@ In practice, that made `Lines of code changed` the least trustworthy number on t
 This fork ports the relevant recovery behavior from `jstrieb/github-stats` into Python:
 
 1. It performs short random retries when the repository stats endpoint returns `202 Accepted`.
-2. If the stats API still does not return usable data, or it responds with retryable rate-limit style failures such as `403` or `429`, it falls back to a git-based calculation.
-3. The git fallback clones the repository in a lightweight bare form and runs `git log --numstat`, matching commits by the authenticated user's contributor email addresses.
-4. If the token cannot return email addresses, the fallback uses the GitHub noreply address for the account as a last resort.
+2. It treats `204 No Content` as a settled empty result and counts it as an API success worth `0`, rather than retrying or reporting a failure.
+3. If the stats API still does not return usable data, or it responds with retryable rate-limit style failures such as `403` or `429`, it falls back to a git-based calculation.
+4. The git fallback clones the repository in a lightweight bare form and runs `git log --numstat`, matching commits by the authenticated user's contributor email addresses.
+5. If the token cannot return email addresses, the fallback uses the GitHub noreply address for the account as a last resort.
 
 This is the core fix in the fork: the transparent Python version now follows the same general strategy that made the upstream Zig implementation more reliable for `Lines of code changed`.
 
-The workflow also prints a sanitized one-line execution summary for this feature in this shape:
+The workflow also prints a sanitized execution summary for this feature in this shape:
 
 `Lines changed sources: API X | git fallback Y | failed Z`
+
+If at least one repository failed, a second line breaks those failures down by cause:
+
+`Lines changed failure causes: git unavailable A | clone failed B | git log failed C | other/api error D`
 
 That keeps the logs useful without dumping per-repository failure details into the workflow output.
 

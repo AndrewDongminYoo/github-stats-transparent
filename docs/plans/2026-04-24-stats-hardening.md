@@ -1,6 +1,9 @@
 # Stats Hardening Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Status: implemented — do not re-execute this plan.**
+> It was carried out with superpowers:subagent-driven-development, and every step below is checked off.
+> Grep `Stats.lines_changed_summary_text` and `generate_images.print_lines_changed_summary` for the entry points.
+> The code blocks record the plan as written on 2026-04-24, and the shipped implementation went further in places (failure-cause buckets, a `204 No Content` branch), so read `github_stats.py` and `generate_images.py` for current behavior.
 
 **Goal:** Remove private-repo names from normal stats logs, add aggregate `lines_changed` source reporting, apply small safe runtime optimizations, and rewrite the English/Korean READMEs to explain the Zig-derived fix and welcome further contributions.
 
@@ -31,7 +34,7 @@
 
 - Modify: `test_github_stats.py`
 
-- [ ] **Step 1: Write the failing tests for `lines_changed` summary accounting**
+- [x] **Step 1: Write the failing tests for `lines_changed` summary accounting**
 
 ```python
 class StatsTests(unittest.IsolatedAsyncioTestCase):
@@ -100,12 +103,12 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
         stats._fetch_lines_changed.assert_awaited_once_with("owner/repo")
 ```
 
-- [ ] **Step 2: Run the stats test file to confirm the new tests fail**
+- [x] **Step 2: Run the stats test file to confirm the new tests fail**
 
 Run: `python3 -m unittest -v test_github_stats.py`  
 Expected: `FAIL` or `ERROR` because `Stats` does not yet expose `lines_changed_summary`, `lines_changed_summary_text`, or the new `(additions, deletions, source)` return shape.
 
-- [ ] **Step 3: Commit the failing-test checkpoint**
+- [x] **Step 3: Commit the failing-test checkpoint**
 
 ```bash
 git add test_github_stats.py
@@ -119,7 +122,7 @@ git commit -m "test: add lines changed summary regressions"
 - Modify: `github_stats.py`
 - Test: `test_github_stats.py`
 
-- [ ] **Step 1: Add summary state and async accessors in `Stats`**
+- [x] **Step 1: Add summary state and async accessors in `Stats`**
 
 ```python
 class Stats(object):
@@ -154,7 +157,7 @@ class Stats(object):
         )
 ```
 
-- [ ] **Step 2: Make REST retries for repo stats quiet and return a source tag**
+- [x] **Step 2: Make REST retries for repo stats quiet and return a source tag**
 
 ```python
 async def query_rest_response(
@@ -195,7 +198,7 @@ async def _fetch_lines_changed(self, repo: str) -> Tuple[int, int, str]:
     return 0, 0, "failed"
 ```
 
-- [ ] **Step 3: Remove repo-specific fallback prints and aggregate the summary once**
+- [x] **Step 3: Remove repo-specific fallback prints and aggregate the summary once**
 
 ```python
 @property
@@ -242,7 +245,7 @@ async def _get_lines_changed_from_git(self, repo: str) -> Tuple[int, int, str]:
     return additions, deletions, "git_fallback"
 ```
 
-- [ ] **Step 4: Update git fallback helpers so failures are classified without leaking repo names**
+- [x] **Step 4: Update git fallback helpers so failures are classified without leaking repo names**
 
 ```python
 def _get_lines_changed_from_git_sync(
@@ -258,12 +261,12 @@ def _get_lines_changed_from_git_sync(
     return additions, deletions
 ```
 
-- [ ] **Step 5: Run the stats tests and confirm they pass**
+- [x] **Step 5: Run the stats tests and confirm they pass**
 
 Run: `python3 -m unittest -v test_github_stats.py`  
 Expected: all tests in `test_github_stats.py` pass, including the three new summary/caching assertions.
 
-- [ ] **Step 6: Commit the `Stats` implementation**
+- [x] **Step 6: Commit the `Stats` implementation**
 
 ```bash
 git add github_stats.py test_github_stats.py
@@ -277,7 +280,7 @@ git commit -m "feat: add sanitized lines changed summary"
 - Modify: `generate_images.py`
 - Create: `test_generate_images.py`
 
-- [ ] **Step 1: Write the failing tests for sanitized summary printing and single `lines_changed` access**
+- [x] **Step 1: Write the failing tests for sanitized summary printing and single `lines_changed` access**
 
 ```python
 import asyncio
@@ -348,12 +351,12 @@ class GenerateImagesTests(unittest.IsolatedAsyncioTestCase):
         )
 ```
 
-- [ ] **Step 2: Run the new generate-images test file to confirm it fails**
+- [x] **Step 2: Run the new generate-images test file to confirm it fails**
 
 Run: `python3 -m unittest -v test_generate_images.py`  
 Expected: `FAIL` because `print_lines_changed_summary()` does not exist yet and `generate_overview()` still reads `await s.lines_changed` twice.
 
-- [ ] **Step 3: Implement the local caching and one-line summary printer**
+- [x] **Step 3: Implement the local caching and one-line summary printer**
 
 ```python
 async def generate_overview(s: Stats) -> None:
@@ -382,12 +385,12 @@ async def main() -> None:
         await print_lines_changed_summary(s)
 ```
 
-- [ ] **Step 4: Run both test modules and confirm they pass together**
+- [x] **Step 4: Run both test modules and confirm they pass together**
 
 Run: `python3 -m unittest -v test_github_stats.py test_generate_images.py`  
 Expected: both test modules pass with no repo names in printed summary output.
 
-- [ ] **Step 5: Commit the entry-point cleanup**
+- [x] **Step 5: Commit the entry-point cleanup**
 
 ```bash
 git add generate_images.py test_generate_images.py
@@ -401,7 +404,7 @@ git commit -m "perf: summarize lines changed sources once"
 - Modify: `README.md`
 - Create: `README-KR.md`
 
-- [ ] **Step 1: Rewrite `README.md` as the primary English document**
+- [x] **Step 1: Rewrite `README.md` as the primary English document**
 
 ```md
 # github-stats-transparent
@@ -443,7 +446,7 @@ Issues and pull requests are welcome, especially for:
 - compatibility fixes for GitHub API changes
 ```
 
-- [ ] **Step 2: Add `README-KR.md` with the same structure in Korean**
+- [x] **Step 2: Add `README-KR.md` with the same structure in Korean**
 
 ```md
 # github-stats-transparent 한국어 안내
@@ -478,13 +481,13 @@ GitHub Actions로 투명 배경의 GitHub 통계 카드를 생성하는 프로�
 - GitHub API 변경 대응
 ```
 
-- [ ] **Step 3: Run a quick content review on both READMEs**
+- [x] **Step 3: Run a quick content review on both READMEs**
 
 Run: `sed -n '1,240p' README.md`  
 Run: `sed -n '1,240p' README-KR.md`  
 Expected: both files clearly mention the Zig-derived fix, setup requirements, sanitized logging, and that further contributions are welcome.
 
-- [ ] **Step 4: Commit the documentation rewrite**
+- [x] **Step 4: Commit the documentation rewrite**
 
 ```bash
 git add README.md README-KR.md
@@ -502,22 +505,22 @@ git commit -m "docs: rewrite project readmes"
 - Modify: `README.md`
 - Create: `README-KR.md`
 
-- [ ] **Step 1: Run the full unit-test suite**
+- [x] **Step 1: Run the full unit-test suite**
 
 Run: `python3 -m unittest -v test_github_stats.py test_generate_images.py`  
 Expected: all tests pass.
 
-- [ ] **Step 2: Run Python syntax validation**
+- [x] **Step 2: Run Python syntax validation**
 
 Run: `python3 -m py_compile github_stats.py generate_images.py test_github_stats.py test_generate_images.py`  
 Expected: command exits successfully with no output.
 
-- [ ] **Step 3: Optionally run the generator with a valid token**
+- [x] **Step 3: Optionally run the generator with a valid token**
 
 Run: `python3 generate_images.py`  
 Expected: `generated/overview.svg` and `generated/languages.svg` are updated, and the terminal ends with one sanitized line such as `Lines changed sources: API 12 | git fallback 3 | failed 0`.
 
-- [ ] **Step 4: Commit the final verified state**
+- [x] **Step 4: Commit the final verified state**
 
 ```bash
 git add github_stats.py generate_images.py test_github_stats.py test_generate_images.py README.md README-KR.md

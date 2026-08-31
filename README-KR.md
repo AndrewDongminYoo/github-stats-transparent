@@ -38,15 +38,20 @@
 이 포크는 `jstrieb/github-stats`의 핵심 복구 전략을 Python으로 옮겼습니다.
 
 1. 저장소 stats 엔드포인트가 `202 Accepted`를 반환하면 짧은 랜덤 대기 후 여러 번 다시 시도합니다.
-2. 그래도 유효한 데이터를 받지 못하거나, 재시도 성격의 실패인 `403` 또는 `429`가 나오면 git 기반 계산으로 넘어갑니다.
-3. git fallback은 저장소를 가벼운 bare clone 형태로 가져온 뒤 `git log --numstat`를 실행하고, 인증된 사용자의 contributor email과 일치하는 커밋만 합산합니다.
-4. 토큰으로 이메일 목록을 가져오지 못하면 마지막 수단으로 GitHub noreply 주소를 사용합니다.
+2. `204 No Content`는 기여 데이터가 확정적으로 없다는 응답이므로, 재시도하거나 실패로 처리하지 않고 값이 `0`인 API 성공으로 집계합니다.
+3. 그래도 유효한 데이터를 받지 못하거나, 재시도 성격의 실패인 `403` 또는 `429`가 나오면 git 기반 계산으로 넘어갑니다.
+4. git fallback은 저장소를 가벼운 bare clone 형태로 가져온 뒤 `git log --numstat`를 실행하고, 인증된 사용자의 contributor email과 일치하는 커밋만 합산합니다.
+5. 토큰으로 이메일 목록을 가져오지 못하면 마지막 수단으로 GitHub noreply 주소를 사용합니다.
 
 이것이 이 포크의 핵심 수정 사항입니다. 즉, 투명 Python 버전이 이제 `Lines of code changed`에 대해 upstream Zig 버전과 같은 방향의 복구 전략을 따릅니다.
 
-또한 워크플로 로그에서는 저장소별 상세 오류 출력을 억제하고, 주된 요약 출력으로 아래 형태의 sanitize된 한 줄 요약을 남깁니다.
+또한 워크플로 로그에서는 저장소별 상세 오류 출력을 억제하고, 아래 형태의 sanitize된 요약을 남깁니다.
 
 `Lines changed sources: API X | git fallback Y | failed Z`
+
+실패한 저장소가 하나라도 있으면 그 원인을 분류한 두 번째 줄이 함께 출력됩니다.
+
+`Lines changed failure causes: git unavailable A | clone failed B | git log failed C | other/api error D`
 
 즉, 로그는 디버깅에 필요한 최소한의 정보는 유지하면서도 과도한 상세 출력은 피하도록 정리되어 있습니다.
 

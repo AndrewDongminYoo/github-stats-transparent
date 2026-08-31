@@ -1,5 +1,9 @@
 # Stats Hardening Design
 
+> **Status: implemented.**
+> This document records the design as of 2026-04-24 and is kept for provenance, not as a description of current behavior.
+> Two things shipped beyond it: the summary adds a second `Lines changed failure causes:` line breaking failures into `git unavailable` / `clone failed` / `git log failed` / `other/api error`, and a `204 No Content` response is classified as an API success worth `0`.
+
 ## Summary
 
 This fork will harden `github-stats-transparent` in three areas:
