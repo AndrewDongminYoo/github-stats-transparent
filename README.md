@@ -74,7 +74,7 @@ That keeps the logs useful without dumping per-repository failure details into t
 1. Install Python dependencies:
 
 ```bash
-python3 -m pip install -r requirements.txt
+python3 -m pip install -r requirements-lock.txt
 ```
 
 2. Run the generator with your token. `GITHUB_ACTOR` is optional locally; if it is unset, the script resolves the login from the authenticated viewer:
@@ -116,6 +116,16 @@ The script can also fall back to `GITHUB_TOKEN` if `ACCESS_TOKEN` is missing, bu
 ## Contributing
 
 Issues and pull requests are welcome.
+
+Install `requirements-lock.txt` with pip for the same dependency versions used by CI.
+When changing `requirements.txt`, regenerate the pip-compatible lock with the maintenance tool `uv`:
+
+```bash
+uv pip compile requirements.txt --universal --python-version 3.12 --output-file requirements-lock.txt
+```
+
+Commit both files together.
+The generator and CI continue to use pip; `uv` is only needed to regenerate the lock.
 
 Especially useful contributions include:
 
