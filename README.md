@@ -135,3 +135,9 @@ Especially useful contributions include:
 - compatibility fixes for GitHub API behavior changes
 
 If you find another case where `Lines of code changed` is still inaccurate, open an issue with reproduction details. If you already know the fix, send a pull request.
+
+## Offline Secret Reader
+
+Run `python3 -B .trunk/configs/tests/test_trufflehog_to_sarif.py` separately from the application unit tests.
+These standard-library regressions need no access token or image-generation request.
+CI runs the exact reader file, and TruffleHog uses `--no-verification --no-update` with a decoded-finding fallback.

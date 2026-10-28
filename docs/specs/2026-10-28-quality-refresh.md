@@ -27,3 +27,11 @@ Preserve public APIs, generated artifacts and repository-specific boundaries.
 
 Push and PR creation require explicit repository-specific approval.
 After approval, continue the requested hosted gates, merge, cleanup and memory recording.
+
+## Filesystem Reader Follow-up
+
+Use the reviewed standard-library filesystem reader and ten regressions from `rn-typed-assets/.trunk/configs/`.
+Add its project-relative path to Trunk's `direct_configs` so the copy sandbox contains the reader.
+Retain decoded results at file level when no literal position is available, omit secret values from messages and reject malformed conversion without partial clean output.
+Run the exact test file in CI without changing the existing application or plugin commands.
+Preserve public contracts, product source, manifests, locks, workflows that publish output, runtime pins, hook policies and exclusions.
