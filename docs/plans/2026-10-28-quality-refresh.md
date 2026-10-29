@@ -19,7 +19,7 @@
 
 ## Reader Follow-up Verification
 
-1. Run the ten standard-library reader tests and compare executable AST after required Black/isort formatting.
+1. Run the 17 standard-library reader tests and compare executable AST after required Black/isort formatting.
 2. Reproduce old-reader encoded loss, then require actual configured Trunk failures for encoded/literal controls and success for clean input.
 3. Run the full no-fix Trunk scan and review affected documentation and exact CI-step parity.
 4. Retain existing application and plugin gate evidence only after protected source and dependency inputs compare equal.
@@ -27,3 +27,12 @@
 The first full reader scan exposed one existing synthetic cached-login fallback URL fixture and an isort sandbox classification mismatch.
 Use one exact URI-detector comment for the placeholder fixture and declare `github_stats` as first-party in the existing isort configuration.
 Keep the generator's existing import grouping and executable test AST unchanged.
+
+## Offline scanner resource boundary
+
+Run `python3 -B .trunk/configs/tests/test_trufflehog_to_sarif.py` for the 17 command-line reader regressions.
+Source context is limited to 1 MiB plus a sentinel byte per read and at most eight cached files.
+Oversized, unreadable, binary or decoded-only findings retain file-level diagnostics instead of disappearing.
+Native Trunk paths and Unicode code-point columns are preserved.
+The large-source and multi-file regressions measure traced Python allocations on ASCII fixtures; they do not establish a universal process RSS or I/O timeout bound.
+Malformed scanner input fails the gate, and candidate credentials are never verified with a provider.

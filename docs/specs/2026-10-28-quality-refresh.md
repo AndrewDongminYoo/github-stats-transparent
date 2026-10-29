@@ -30,8 +30,17 @@ After approval, continue the requested hosted gates, merge, cleanup and memory r
 
 ## Filesystem Reader Follow-up
 
-Use the reviewed standard-library filesystem reader and ten regressions from `rn-typed-assets/.trunk/configs/`.
+Use the reviewed standard-library filesystem reader and 17 regressions from the shared maintenance implementation.
 Add its project-relative path to Trunk's `direct_configs` so the copy sandbox contains the reader.
 Retain decoded results at file level when no literal position is available, omit secret values from messages and reject malformed conversion without partial clean output.
 Run the exact test file in CI without changing the existing application or plugin commands.
 Preserve public contracts, product source, manifests, locks, workflows that publish output, runtime pins, hook policies and exclusions.
+
+## Offline scanner resource boundary
+
+Run `python3 -B .trunk/configs/tests/test_trufflehog_to_sarif.py` for the 17 command-line reader regressions.
+Source context is limited to 1 MiB plus a sentinel byte per read and at most eight cached files.
+Oversized, unreadable, binary or decoded-only findings retain file-level diagnostics instead of disappearing.
+Native Trunk paths and Unicode code-point columns are preserved.
+The large-source and multi-file regressions measure traced Python allocations on ASCII fixtures; they do not establish a universal process RSS or I/O timeout bound.
+Malformed scanner input fails the gate, and candidate credentials are never verified with a provider.
