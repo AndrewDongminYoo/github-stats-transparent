@@ -74,7 +74,7 @@ That keeps the logs useful without dumping per-repository failure details into t
 1. Install Python dependencies:
 
 ```bash
-python3 -m pip install -r requirements.txt
+python3 -m pip install -r requirements-lock.txt
 ```
 
 2. Run the generator with your token. `GITHUB_ACTOR` is optional locally; if it is unset, the script resolves the login from the authenticated viewer:
@@ -117,6 +117,16 @@ The script can also fall back to `GITHUB_TOKEN` if `ACCESS_TOKEN` is missing, bu
 
 Issues and pull requests are welcome.
 
+Install `requirements-lock.txt` with pip for the same dependency versions used by CI.
+When changing `requirements.txt`, regenerate the pip-compatible lock with the maintenance tool `uv`:
+
+```bash
+uv pip compile requirements.txt --universal --python-version 3.12 --output-file requirements-lock.txt
+```
+
+Commit both files together.
+The generator and CI continue to use pip; `uv` is only needed to regenerate the lock.
+
 Especially useful contributions include:
 
 - stats accuracy improvements
@@ -125,3 +135,18 @@ Especially useful contributions include:
 - compatibility fixes for GitHub API behavior changes
 
 If you find another case where `Lines of code changed` is still inaccurate, open an issue with reproduction details. If you already know the fix, send a pull request.
+
+## Offline Secret Reader
+
+Run `python3 -B .trunk/configs/tests/test_trufflehog_to_sarif.py` separately from the application unit tests.
+These standard-library regressions need no access token or image-generation request.
+CI runs the exact reader file, and TruffleHog uses `--no-verification --no-update` with a decoded-finding fallback.
+
+## Offline scanner resource boundary
+
+Run `python3 -B .trunk/configs/tests/test_trufflehog_to_sarif.py` for the 17 command-line reader regressions.
+Source context is limited to 1 MiB plus a sentinel byte per read and at most eight cached files.
+Oversized, unreadable, binary or decoded-only findings retain file-level diagnostics instead of disappearing.
+Native Trunk paths and Unicode code-point columns are preserved.
+The large-source and multi-file regressions measure traced Python allocations on ASCII fixtures; they do not establish a universal process RSS or I/O timeout bound.
+Malformed scanner input fails the gate, and candidate credentials are never verified with a provider.

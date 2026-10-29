@@ -393,6 +393,7 @@ class StatsTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result, (1, 1, "git_fallback"))
         clone_command = run_mock.call_args_list[0].args[0]
+        # trunk-ignore(trufflehog/URI): Synthetic userinfo fixture verifies cached-login fallback.
         self.assertIn("https://octocat:token@github.com/owner/repo.git", clone_command)
 
     async def test_git_fallback_returns_failed_when_git_is_unavailable(self):
