@@ -2,7 +2,7 @@
 # To learn more about the format of this file, see https://docs.trunk.io/reference/trunk-yaml
 version: 0.1
 cli:
-  version: 1.25.0
+  version: 1.29.0
   options:
     - commands: [ALL]
       args: --monitor=false
@@ -35,23 +35,22 @@ lint:
             run: python3 .trunk/configs/trufflehog_to_sarif.py
   disabled:
     - bandit
-    - svgo
     - grype
+    - svgo
   enabled:
-    - pinact@4.1.1!:
-        commands: [lint, upgrade]
-    - taplo@0.10.0
     - actionlint@1.7.12
     - black@26.10.1
-    - checkov@3.3.30
+    - checkov@3.4.3
     - git-diff-check
     - isort@9.0.2
     - markdownlint@0.50.0
     - osv-scanner@2.7.0
     - oxipng@10.2.1
+    - pinact@4.1.1!
     - prettier@3.9.10
-    - ruff@0.17.3
-    - trufflehog@3.99.7
+    - ruff@0.17.4
+    - taplo@0.10.0
+    - trufflehog@3.99.8
     - yamllint@1.38.0
 actions:
   disabled:
